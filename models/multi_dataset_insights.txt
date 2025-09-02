@@ -1,0 +1,19 @@
+🔍 NASA C-MAPSS Multi-Dataset Analysis Insights:
+============================================================
+
+📊 Dataset Complexity Ranking (easiest to hardest):
+   FD001: 🟢 Simple (1 fault(s), 1 condition(s))
+   FD003: 🟡 Medium (2 fault(s), 1 condition(s))
+   FD002: 🔴 Complex (1 fault(s), 6 condition(s))
+   FD004: 🔴 Complex (2 fault(s), 6 condition(s))
+
+🏆 Best performing dataset: FD001 (0.9164 accuracy)
+⚠️ Most challenging dataset: FD004 (0.8784 accuracy)
+
+🔧 Single-fault datasets average accuracy: 0.9098
+🔧 Multi-fault datasets average accuracy: 0.8861
+📉 Performance drop due to multiple faults: 0.0237
+
+🌡️ Single operating condition average accuracy: 0.9050
+🌡️ Multiple operating conditions average accuracy: 0.8908
+📉 Performance drop due to varying conditions: 0.0143
