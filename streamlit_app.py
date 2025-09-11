@@ -1,5 +1,3 @@
-# streamlit_app.py - Complete NASA Aircraft Predictive Maintenance Dashboard
-
 import streamlit as st
 import pandas as pd
 import numpy as np

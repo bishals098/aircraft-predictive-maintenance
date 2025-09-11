@@ -1,4 +1,3 @@
-# src/__init__.py
 """
 Aircraft Predictive Maintenance System - NASA Dataset
 

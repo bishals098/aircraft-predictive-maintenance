@@ -1,4 +1,3 @@
-# src/predictor.py
 import numpy as np
 import pandas as pd
 import joblib

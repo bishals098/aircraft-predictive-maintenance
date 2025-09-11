@@ -1,5 +1,3 @@
-# src/nasa_data_loader.py - Enhanced Version
-
 import pandas as pd
 import numpy as np
 import os

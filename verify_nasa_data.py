@@ -1,6 +1,4 @@
-# verify_nasa_data.py
 import os
-
 def verify_nasa_dataset():
     """Verify NASA dataset files are correctly placed"""
     
