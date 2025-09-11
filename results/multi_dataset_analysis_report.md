@@ -1,5 +1,5 @@
 # 🚀 NASA C-MAPSS Multi-Dataset Analysis Report
-Generated on: 2025-09-09 02:54:52
+Generated on: 2025-09-11 19:10:47
 
 ================================================================================
 
@@ -48,7 +48,7 @@ Generated on: 2025-09-09 02:54:52
 - **Best Regressor**: ('random_forest_regressor', 0.5363085279874035) (R²=0.5363)
 
 ### FD004
-- **Best Classifier**: ('lstm_classifier', 0.8806441810999697) (0.8806)
+- **Best Classifier**: ('xgboost_classifier', 0.878427566124727) (0.8784)
 - **Best Regressor**: ('random_forest_regressor', 0.6109705788033197) (R²=0.6110)
 
 ## 🔍 Key Insights
@@ -60,15 +60,15 @@ Generated on: 2025-09-09 02:54:52
    FD004: 🔴 Complex (2 fault(s), 6 condition(s))
 
 🏆 Best performing dataset: FD001 (0.9164 accuracy)
-⚠️ Most challenging dataset: FD004 (0.8806 accuracy)
+⚠️ Most challenging dataset: FD004 (0.8784 accuracy)
 
 🔧 Single-fault datasets average accuracy: 0.9098
-🔧 Multi-fault datasets average accuracy: 0.8872
-📉 Performance drop due to multiple faults: 0.0226
+🔧 Multi-fault datasets average accuracy: 0.8861
+📉 Performance drop due to multiple faults: 0.0237
 
 🌡️ Single operating condition average accuracy: 0.9050
-🌡️ Multiple operating conditions average accuracy: 0.8919
-📉 Performance drop due to varying conditions: 0.0132
+🌡️ Multiple operating conditions average accuracy: 0.8908
+📉 Performance drop due to varying conditions: 0.0143
 
 ## 💡 Recommendations
 - **FD001**: Ideal for initial model development and testing
