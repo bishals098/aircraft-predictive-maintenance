@@ -138,20 +138,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **⭐ If you find this project useful, please consider giving it a star!**
 
 ***
-
-## 💡 **Additional GitHub Tips:**
-
-1. **Repository Name**: `aircraft-predictive-maintenance` or `nasa-cmapss-predictive-maintenance`
-
-2. **Topics/Tags to Add**: 
-   - `predictive-maintenance`
-   - `machine-learning`
-   - `deep-learning`
-   - `nasa-dataset`
-   - `aerospace`
-   - `turbofan-engine`
-   - `streamlit`
-   - `ensemble-learning`
-
-3. **Repository Description**: 
-   "Aircraft turbofan engine predictive maintenance using NASA C-MAPSS dataset. Features ensemble ML models (RF, XGBoost, LSTM) with interactive Streamlit dashboard achieving 91.6% accuracy."
