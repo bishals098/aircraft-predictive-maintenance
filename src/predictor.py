@@ -1,15 +1,18 @@
+import os
+import torch
+import torch.nn as nn
 import numpy as np
 import pandas as pd
 import joblib
-import tensorflow as tf
-from datetime import datetime, timedelta
 import yaml
 import warnings
 import pickle
-import os
+from datetime import datetime, timedelta
+
 warnings.filterwarnings('ignore')
 
 class PredictiveMaintenance:
+    
     def __init__(self, config_path='config/config.yaml'):
         with open(config_path, 'r') as file:
             self.config = yaml.safe_load(file)
@@ -26,37 +29,37 @@ class PredictiveMaintenance:
             print("✓ Random Forest Classifier loaded")
         except:
             print("⚠ Random Forest Classifier not found")
-            
+        
         try:
             self.models['rf_regressor'] = joblib.load('models/random_forest_regressor.pkl')
             print("✓ Random Forest Regressor loaded")
         except:
             print("⚠ Random Forest Regressor not found")
-            
+        
         try:
             self.models['xgb_classifier'] = joblib.load('models/xgboost_classifier.pkl')
             print("✓ XGBoost Classifier loaded")
         except:
             print("⚠ XGBoost Classifier not found")
-            
+        
         try:
             self.models['knn_classifier'] = joblib.load('models/knn_classifier.pkl')
             print("✓ KNN Classifier loaded")
         except:
             print("⚠ KNN Classifier not found")
-            
+        
         try:
             self.models['svm_classifier'] = joblib.load('models/svm_classifier.pkl')
             print("✓ SVM Classifier loaded")
         except:
             print("⚠ SVM Classifier not found")
-            
+        
         try:
             self.scaler = joblib.load('models/scaler.pkl')
             print("✓ Scaler loaded")
         except:
             print("⚠ Scaler not found")
-            
+        
         try:
             with open('models/feature_columns.pkl', 'rb') as f:
                 self.feature_columns = pickle.load(f)
@@ -65,16 +68,25 @@ class PredictiveMaintenance:
             print("⚠ Feature columns not found")
         
         try:
-            self.models['lstm_classifier'] = tf.keras.models.load_model('models/lstm_classifier.keras')
-            # Add compilation after loading
-            self.models['lstm_classifier'].compile(
-                optimizer='adam', 
-                loss='binary_crossentropy', 
-                metrics=['accuracy']
+            # PyTorch LSTM model loading
+            from model_trainer import LSTMPredictor
+            
+            # Create model instance with correct parameters
+            input_size = len(self.feature_columns) if self.feature_columns else 100
+            lstm_model = LSTMPredictor(
+                input_size=input_size,
+                hidden_units=self.config['models']['lstm']['units'],
+                dropout=self.config['models']['lstm']['dropout']
             )
-            print("✓ LSTM Classifier loaded and compiled")
-        except:
-            print("⚠ LSTM Classifier not found")
+            
+            # Load trained weights
+            lstm_model.load_state_dict(torch.load('models/lstm_classifier.pth', map_location='cpu'))
+            lstm_model.eval()  # Set to evaluation mode
+            
+            self.models['lstm_classifier'] = lstm_model
+            print("✓ LSTM Classifier loaded (PyTorch)")
+        except Exception as e:
+            print(f"⚠ LSTM Classifier not found: {e}")
     
     def preprocess_input(self, sensor_data):
         """Preprocess input sensor data for prediction"""
@@ -177,10 +189,9 @@ class PredictiveMaintenance:
         """Predict failure risk using trained models"""
         try:
             X_scaled, feature_names = self.preprocess_input(sensor_data)
-            
             predictions = {}
             
-            # Individual model predictions
+            # Individual model predictions (excluding LSTM for now)
             for name, model in self.models.items():
                 if 'classifier' in name and name != 'lstm_classifier':
                     try:
@@ -190,13 +201,28 @@ class PredictiveMaintenance:
                         print(f"Warning: {name} prediction failed: {e}")
                         continue
             
+            # PyTorch LSTM prediction
+            if 'lstm_classifier' in self.models and model_name in ['ensemble', 'lstm_classifier']:
+                try:
+                    lstm_model = self.models['lstm_classifier']
+                    # For LSTM, we need sequence data - create a simple sequence from current data
+                    sequence_length = 30  # Same as training
+                    sequence_data = np.tile(X_scaled, (sequence_length, 1))  # Repeat current reading
+                    sequence_data = torch.tensor(sequence_data, dtype=torch.float32).unsqueeze(0)  # Add batch dim
+                    
+                    with torch.no_grad():
+                        lstm_pred = lstm_model(sequence_data)
+                        predictions['lstm_classifier'] = float(lstm_pred.item())
+                except Exception as e:
+                    print(f"Warning: LSTM prediction failed: {e}")
+            
             if model_name == 'ensemble':
                 # Ensemble prediction (average of all models)
                 if predictions:
                     ensemble_prob = np.mean(list(predictions.values()))
                     return {
                         'failure_probability': float(ensemble_prob),
-                        'failure_risk': 'High' if ensemble_prob > self.config['alerts']['failure_threshold'] else 
+                        'failure_risk': 'High' if ensemble_prob > self.config['alerts']['failure_threshold'] else
                                        'Medium' if ensemble_prob > self.config['alerts']['warning_threshold'] else 'Low',
                         'individual_predictions': predictions
                     }
@@ -204,17 +230,17 @@ class PredictiveMaintenance:
                 prob = predictions[model_name]
                 return {
                     'failure_probability': float(prob),
-                    'failure_risk': 'High' if prob > self.config['alerts']['failure_threshold'] else 
+                    'failure_risk': 'High' if prob > self.config['alerts']['failure_threshold'] else
                                    'Medium' if prob > self.config['alerts']['warning_threshold'] else 'Low'
                 }
-            
-            # Fallback if no models available
-            return {
-                'failure_probability': 0.0,
-                'failure_risk': 'Unknown',
-                'error': 'No models available for prediction'
-            }
-            
+            else:
+                # Fallback if no models available
+                return {
+                    'failure_probability': 0.0,
+                    'failure_risk': 'Unknown',
+                    'error': 'No models available for prediction'
+                }
+        
         except Exception as e:
             return {'error': f'Prediction failed: {str(e)}'}
     
@@ -235,7 +261,7 @@ class PredictiveMaintenance:
                     return {'error': f'RUL prediction failed: {e}'}
             
             return {'error': 'RUL model not available'}
-            
+        
         except Exception as e:
             return {'error': f'RUL prediction failed: {str(e)}'}
     
@@ -284,12 +310,10 @@ class PredictiveMaintenance:
     def batch_predict(self, sensor_data_list):
         """Perform batch predictions on multiple sensor data points"""
         results = []
-        
         for i, sensor_data in enumerate(sensor_data_list):
             try:
                 failure_pred = self.predict_failure_risk(sensor_data)
                 rul_pred = self.predict_remaining_useful_life(sensor_data)
-                
                 result = {
                     'index': i,
                     'failure_prediction': failure_pred,

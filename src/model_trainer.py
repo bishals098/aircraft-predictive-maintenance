@@ -4,29 +4,66 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.svm import SVC, SVR
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import classification_report, accuracy_score, mean_squared_error, r2_score
-import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout
-from tensorflow.keras.callbacks import EarlyStopping
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import Dataset, DataLoader
 import xgboost as xgb
 import joblib
 import yaml
 import warnings
+
 warnings.filterwarnings('ignore')
 
+class SequenceDataset(Dataset):
+    """PyTorch Dataset for sequence data"""
+    def __init__(self, X, y):
+        self.X = torch.tensor(X, dtype=torch.float32)
+        self.y = torch.tensor(y, dtype=torch.float32)
+    
+    def __len__(self):
+        return len(self.X)
+    
+    def __getitem__(self, idx):
+        return self.X[idx], self.y[idx]
+
+class LSTMPredictor(nn.Module):
+    """PyTorch LSTM model - equivalent to original TensorFlow Sequential"""
+    def __init__(self, input_size, hidden_units, dropout=0.3):
+        super(LSTMPredictor, self).__init__()
+        self.lstm1 = nn.LSTM(input_size, hidden_units, batch_first=True)
+        self.dropout1 = nn.Dropout(dropout)
+        self.lstm2 = nn.LSTM(hidden_units, hidden_units // 2, batch_first=True)
+        self.dropout2 = nn.Dropout(dropout)
+        self.fc1 = nn.Linear(hidden_units // 2, 32)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(32, 1)
+        self.sigmoid = nn.Sigmoid()
+    
+    def forward(self, x):
+        out, _ = self.lstm1(x)
+        out = self.dropout1(out)
+        out, (hn, cn) = self.lstm2(out)
+        out = self.dropout2(out[:, -1, :])  # Take last output
+        out = self.fc1(out)
+        out = self.relu(out)
+        out = self.fc2(out)
+        out = self.sigmoid(out)
+        return out.squeeze()
+
 class ModelTrainer:
+    
     def __init__(self, config_path='config/config.yaml'):
         with open(config_path, 'r') as file:
             self.config = yaml.safe_load(file)
-        
         self.models = {}
         self.model_performance = {}
     
     def train_random_forest_classifier(self, X_train, y_train, X_test, y_test):
         """Train Random Forest classifier for failure prediction"""
         print("Training Random Forest Classifier...")
-        
         rf_config = self.config['models']['random_forest']
+        
         model = RandomForestClassifier(
             n_estimators=rf_config['n_estimators'],
             max_depth=rf_config['max_depth'],
@@ -55,14 +92,13 @@ class ModelTrainer:
         
         # Save model
         joblib.dump(model, 'models/random_forest_classifier.pkl')
-        
         return model
     
     def train_random_forest_regressor(self, X_train, y_train, X_test, y_test):
         """Train Random Forest regressor for RUL prediction"""
         print("Training Random Forest Regressor...")
-        
         rf_config = self.config['models']['random_forest']
+        
         model = RandomForestRegressor(
             n_estimators=rf_config['n_estimators'],
             max_depth=rf_config['max_depth'],
@@ -91,14 +127,13 @@ class ModelTrainer:
         
         # Save model
         joblib.dump(model, 'models/random_forest_regressor.pkl')
-        
         return model
     
     def train_xgboost_classifier(self, X_train, y_train, X_test, y_test):
         """Train XGBoost classifier"""
         print("Training XGBoost Classifier...")
-        
         xgb_config = self.config['models']['xgboost']
+        
         model = xgb.XGBClassifier(
             n_estimators=xgb_config['n_estimators'],
             max_depth=xgb_config['max_depth'],
@@ -128,7 +163,6 @@ class ModelTrainer:
         
         # Save model
         joblib.dump(model, 'models/xgboost_classifier.pkl')
-        
         return model
     
     def train_svm_classifier(self, X_train, y_train, X_test, y_test):
@@ -164,7 +198,6 @@ class ModelTrainer:
         
         # Save model
         joblib.dump(model, 'models/svm_classifier.pkl')
-        
         return model
     
     def train_knn_classifier(self, X_train, y_train, X_test, y_test):
@@ -194,72 +227,126 @@ class ModelTrainer:
         
         # Save model
         joblib.dump(model, 'models/knn_classifier.pkl')
-        
-        return model
-    
-    def build_lstm_model(self, input_shape):
-        """Build LSTM model architecture"""
-        lstm_config = self.config['models']['lstm']
-        
-        model = Sequential([
-            LSTM(lstm_config['units'], return_sequences=True, input_shape=input_shape),
-            Dropout(lstm_config['dropout']),
-            LSTM(lstm_config['units'] // 2, return_sequences=False),
-            Dropout(lstm_config['dropout']),
-            Dense(32, activation='relu'),
-            Dense(1, activation='sigmoid')
-        ])
-        
-        model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
         return model
     
     def train_lstm_classifier(self, X_train_seq, y_train_seq, X_test_seq, y_test_seq):
-        """Train LSTM classifier for sequence data"""
+        """Train PyTorch LSTM classifier with TensorFlow-style progress bars"""
         print("Training LSTM Classifier...")
-        
+    
+        # Add this import at the top of the file
+        from tqdm import tqdm
+    
         lstm_config = self.config['models']['lstm']
+    
+        # Get input dimensions
+        input_size = X_train_seq.shape[2]
+    
+        # Initialize model
+        model = LSTMPredictor(input_size, lstm_config['units'], lstm_config['dropout'])
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        model.to(device)
+    
+        # Loss and optimizer
+        criterion = nn.BCELoss()
+        optimizer = optim.Adam(model.parameters(), lr=lstm_config.get('learning_rate', 0.001))
+    
+        # Create datasets and data loaders
+        train_dataset = SequenceDataset(X_train_seq, y_train_seq)
+        test_dataset = SequenceDataset(X_test_seq, y_test_seq)
+    
+        train_loader = DataLoader(train_dataset, batch_size=lstm_config['batch_size'], shuffle=True)
+        test_loader = DataLoader(test_dataset, batch_size=lstm_config['batch_size'], shuffle=False)
+    
+        # Training loop with TensorFlow-style progress bars
+        for epoch in range(lstm_config['epochs']):
+            # Training phase with progress bar
+            model.train()
+            total_loss = 0
+            correct = 0
+            total = 0
         
-        # Build model
-        input_shape = (X_train_seq.shape[1], X_train_seq.shape[2])
-        model = self.build_lstm_model(input_shape)
+            # RESTORED: TensorFlow-style progress bar for each epoch
+            train_pbar = tqdm(train_loader, desc=f'Epoch {epoch+1}/{lstm_config["epochs"]}')
         
-        # Early stopping
-        early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+            for batch_idx, (X_batch, y_batch) in enumerate(train_pbar):
+                X_batch, y_batch = X_batch.to(device), y_batch.to(device)
+            
+                optimizer.zero_grad()
+                outputs = model(X_batch)
+                loss = criterion(outputs, y_batch)
+                loss.backward()
+                optimizer.step()
+            
+                total_loss += loss.item()
+                predicted = (outputs > 0.5).float()
+                total += y_batch.size(0)
+                correct += (predicted == y_batch).sum().item()
+            
+                # Update progress bar with current metrics (like TensorFlow)
+                current_acc = correct / total if total > 0 else 0
+                current_loss = total_loss / (batch_idx + 1)
+                train_pbar.set_postfix({
+                    'loss': f'{current_loss:.4f}', 
+                    'acc': f'{current_acc:.4f}'
+                })
         
-        # Train model
-        history = model.fit(
-            X_train_seq, y_train_seq,
-            epochs=lstm_config['epochs'],
-            batch_size=lstm_config['batch_size'],
-            validation_data=(X_test_seq, y_test_seq),
-            callbacks=[early_stopping],
-            verbose=1
-        )
+            train_acc = correct / total
+            avg_train_loss = total_loss / len(train_loader)
         
-        # Predictions
-        y_pred_proba = model.predict(X_test_seq).flatten()
-        y_pred = (y_pred_proba > 0.5).astype(int)
+            # Validation phase (no progress bar needed for validation)
+            model.eval()
+            val_loss = 0
+            val_correct = 0
+            val_total = 0
         
+            with torch.no_grad():
+                for X_batch, y_batch in test_loader:
+                    X_batch, y_batch = X_batch.to(device), y_batch.to(device)
+                    outputs = model(X_batch)
+                    loss = criterion(outputs, y_batch)
+                    val_loss += loss.item()
+                
+                    predicted = (outputs > 0.5).float()
+                    val_total += y_batch.size(0)
+                    val_correct += (predicted == y_batch).sum().item()
+        
+            val_acc = val_correct / val_total
+            avg_val_loss = val_loss / len(test_loader)
+        
+            # Print epoch summary (like TensorFlow does after progress bar)
+            print(f" - val_loss: {avg_val_loss:.4f} - val_acc: {val_acc:.4f}")
+    
+        # Save model and continue with rest of function...
+        torch.save(model.state_dict(), 'models/lstm_classifier.pth')
+    
+        # Final predictions
+        y_pred_proba = []
+        y_pred = []
+    
+        model.eval()
+        with torch.no_grad():
+            for X_batch, _ in test_loader:
+                X_batch = X_batch.to(device)
+                outputs = model(X_batch)
+                y_pred_proba.extend(outputs.cpu().numpy())
+                y_pred.extend((outputs > 0.5).cpu().numpy().astype(int))
+    
         # Evaluation
         accuracy = accuracy_score(y_test_seq, y_pred)
         report = classification_report(y_test_seq, y_pred, output_dict=True)
-        
+    
         self.models['lstm_classifier'] = model
         self.model_performance['lstm_classifier'] = {
             'accuracy': accuracy,
             'classification_report': report,
             'predictions': y_pred,
-            'probabilities': y_pred_proba,
-            'history': history
+            'probabilities': y_pred_proba
         }
-        
-        print(f"LSTM Classifier Accuracy: {accuracy:.4f}")
-        
-        # Save model
-        model.save('models/lstm_classifier.keras')
-        
-        return model
     
+        print(f"LSTM Classifier Accuracy: {accuracy:.4f}")
+    
+        return model
+
     def train_all_models(self, data_dict):
         """Train all models with provided data"""
         X_train = data_dict['X_train']
@@ -292,7 +379,6 @@ class ModelTrainer:
     def get_model_comparison(self):
         """Get comparison of all trained models"""
         comparison = {}
-        
         for model_name, performance in self.model_performance.items():
             if 'accuracy' in performance:
                 comparison[model_name] = {
