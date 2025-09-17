@@ -95,26 +95,61 @@ class ModelTrainer:
         return model
     
     def train_random_forest_regressor(self, X_train, y_train, X_test, y_test):
-        """Train Random Forest regressor for RUL prediction"""
+        """Train Random Forest regressor for RUL prediction with progress bar"""
         print("Training Random Forest Regressor...")
+    
+        from tqdm import tqdm
+        import time
+    
         rf_config = self.config['models']['random_forest']
-        
+        n_estimators = rf_config['n_estimators']
+    
+        # Create model
         model = RandomForestRegressor(
-            n_estimators=rf_config['n_estimators'],
+            n_estimators=n_estimators,
             max_depth=rf_config['max_depth'],
-            random_state=rf_config['random_state']
+            random_state=rf_config['random_state'],
+            warm_start=True  # Enable incremental training
         )
+    
+        # Train with progress bar simulation
+        print(f"Training {n_estimators} trees...")
+    
+        # For very small n_estimators, train all at once
+        if n_estimators <= 10:
+            with tqdm(total=100, desc="RF Regressor Progress", unit="%") as pbar:
+                model.fit(X_train, y_train)
+                pbar.update(100)
+        else:
+            # Train incrementally for progress display
+            step_size = max(1, n_estimators // 20)  # Update progress 20 times
+            current_trees = 0
         
-        model.fit(X_train, y_train)
-        
+            with tqdm(total=n_estimators, desc="RF Regressor Trees", unit="tree") as pbar:
+                while current_trees < n_estimators:
+                    # Calculate next step
+                    next_trees = min(current_trees + step_size, n_estimators)
+                    model.n_estimators = next_trees
+                
+                    # Fit with current number of trees
+                    model.fit(X_train, y_train)
+                
+                    # Update progress bar
+                    trees_added = next_trees - current_trees
+                    pbar.update(trees_added)
+                    current_trees = next_trees
+                
+                    # Small delay to make progress visible
+                    time.sleep(0.1)
+    
         # Predictions
         y_pred = model.predict(X_test)
-        
+    
         # Evaluation
         mse = mean_squared_error(y_test, y_pred)
         rmse = np.sqrt(mse)
         r2 = r2_score(y_test, y_pred)
-        
+    
         self.models['random_forest_regressor'] = model
         self.model_performance['random_forest_regressor'] = {
             'mse': mse,
@@ -122,9 +157,9 @@ class ModelTrainer:
             'r2': r2,
             'predictions': y_pred
         }
-        
+    
         print(f"Random Forest Regressor RMSE: {rmse:.4f}, R2: {r2:.4f}")
-        
+    
         # Save model
         joblib.dump(model, 'models/random_forest_regressor.pkl')
         return model
