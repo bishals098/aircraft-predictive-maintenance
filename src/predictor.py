@@ -317,27 +317,98 @@ class PredictiveMaintenance:
         calibrated_prob = max(0.05, min(0.95, calibrated_prob))
     
         return calibrated_prob
-
+    
     def predict_remaining_useful_life(self, sensor_data):
-        """Predict remaining useful life using regression model"""
+        """Predict remaining useful life with calibration based on failure risk"""
         try:
             X_scaled, feature_names = self.preprocess_input(sensor_data)
-            
+        
             if 'rf_regressor' in self.models:
                 try:
-                    rul_pred = self.models['rf_regressor'].predict(X_scaled)
+                    # Get raw RUL prediction
+                    raw_rul_pred = self.models['rf_regressor'].predict(X_scaled)[0]
+                
+                    # 🔧 CALIBRATE RUL BASED ON FAILURE RISK
+                    # Get failure risk to inform RUL calibration
+                    failure_risk_result = self.predict_failure_risk(sensor_data)
+                    failure_prob = failure_risk_result.get('failure_probability', 0.5)
+                
+                    # Calibrate RUL based on failure risk
+                    calibrated_rul = self.calibrate_rul(raw_rul_pred, failure_prob, sensor_data)
+
                     return {
-                        'remaining_useful_life_hours': float(rul_pred[0]),
-                        'remaining_useful_life_days': float(rul_pred[0] / 24),
-                        'maintenance_recommendation': self.get_maintenance_recommendation(rul_pred[0])
+                        'remaining_useful_life_hours': float(calibrated_rul * 24),  # Convert cycles to hours (assume 24h/cycle)
+                        'remaining_useful_life_cycles': float(calibrated_rul),
+                        'remaining_useful_life_days': float(calibrated_rul),  # Assume 1 cycle = 1 day for display
+                        'maintenance_recommendation': self.get_maintenance_recommendation(calibrated_rul * 24),
+                        'raw_rul': float(raw_rul_pred)  # For debugging
                     }
                 except Exception as e:
-                    return {'error': f'RUL prediction failed: {e}'}
-            
-            return {'error': 'RUL model not available'}
+                    # Fallback: Estimate RUL from failure probability
+                    estimated_rul = self.estimate_rul_from_risk(sensor_data)
+                    return {
+                        'remaining_useful_life_hours': float(estimated_rul * 24),
+                        'remaining_useful_life_cycles': float(estimated_rul),
+                        'remaining_useful_life_days': float(estimated_rul),
+                        'maintenance_recommendation': self.get_maintenance_recommendation(estimated_rul * 24),
+                        'error': f'RUL regression failed, using risk-based estimate: {e}'
+                    }
+            else:
+                # No RUL model: Estimate from failure risk
+                estimated_rul = self.estimate_rul_from_risk(sensor_data)
+                return {
+                    'remaining_useful_life_hours': float(estimated_rul * 24),
+                    'remaining_useful_life_cycles': float(estimated_rul),
+                    'remaining_useful_life_days': float(estimated_rul),
+                    'maintenance_recommendation': self.get_maintenance_recommendation(estimated_rul * 24),
+                    'note': 'RUL estimated from failure risk (no RUL model available)'
+                }
         
         except Exception as e:
             return {'error': f'RUL prediction failed: {str(e)}'}
+
+    def calibrate_rul(self, raw_rul, failure_prob, sensor_data):
+        """Calibrate RUL based on failure probability and sensor health"""
+    
+        # If raw RUL is negative, it's definitely wrong
+        if raw_rul < 0:
+            print(f"🚨 NEGATIVE RUL DETECTED: {raw_rul:.1f} - Using risk-based estimate")
+            return self.estimate_rul_from_risk(sensor_data)
+    
+        # If raw RUL seems reasonable, apply light calibration
+        if failure_prob < 0.3:  # Low risk
+            # Healthy engines should have longer RUL
+            calibrated_rul = max(raw_rul, 100) * 1.2  # Boost by 20%
+            calibrated_rul = min(calibrated_rul, 300)  # Cap at 300 cycles
+        elif failure_prob < 0.7:  # Medium risk
+            # Moderate engines should have medium RUL
+            calibrated_rul = max(raw_rul, 30) * 1.0   # Keep as-is but ensure positive
+            calibrated_rul = min(calibrated_rul, 150)  # Cap at 150 cycles
+        else:  # High risk
+            # Failing engines should have low RUL
+            calibrated_rul = max(raw_rul, 5) * 0.8    # Reduce by 20%
+            calibrated_rul = min(calibrated_rul, 50)   # Cap at 50 cycles
+    
+        print(f"🔧 RUL CALIBRATION: {raw_rul:.1f} → {calibrated_rul:.1f} (risk: {failure_prob:.3f})")
+        return calibrated_rul
+
+    def estimate_rul_from_risk(self, sensor_data):
+        """Estimate RUL based on failure risk when RUL model fails"""
+        failure_risk_result = self.predict_failure_risk(sensor_data)
+        failure_prob = failure_risk_result.get('failure_probability', 0.5)
+    
+        # Convert failure probability to RUL estimate
+        if failure_prob < 0.2:      # Very low risk
+            estimated_rul = 200 + (0.2 - failure_prob) * 500  # 200-300 cycles
+        elif failure_prob < 0.4:    # Low risk  
+            estimated_rul = 100 + (0.4 - failure_prob) * 500  # 100-200 cycles
+        elif failure_prob < 0.7:    # Medium risk
+            estimated_rul = 30 + (0.7 - failure_prob) * 233   # 30-100 cycles
+        else:                       # High risk
+            estimated_rul = 5 + (1.0 - failure_prob) * 83     # 5-30 cycles
+    
+        print(f"🎯 RUL FROM RISK: {failure_prob:.3f} → {estimated_rul:.1f} cycles")
+        return max(5, estimated_rul)  # Ensure minimum 5 cycles
 
     def get_maintenance_recommendation(self, rul_hours):
         """Get maintenance recommendation based on RUL"""
