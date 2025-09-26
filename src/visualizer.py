@@ -11,58 +11,81 @@ class MaintenanceVisualizer:
         plt.style.use('seaborn-v0_8')
         self.colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
     
-    def plot_sensor_data(self, df, sensors=None, figsize=(15, 10)):
+    def plot_sensor_data(self, df, sensors=None, figsize=(15, 10), save_path=None):
         """Plot sensor data over time"""
         if sensors is None:
             sensors = ['temperature', 'pressure', 'vibration', 'rpm']
-        
+    
         fig, axes = plt.subplots(len(sensors), 1, figsize=figsize, sharex=True)
         if len(sensors) == 1:
             axes = [axes]
-        
+    
         for i, sensor in enumerate(sensors):
             if sensor in df.columns:
                 axes[i].plot(df.index, df[sensor], color=self.colors[i % len(self.colors)])
                 axes[i].set_ylabel(sensor.capitalize())
                 axes[i].grid(True, alpha=0.3)
-                
-                # Highlight failure risk areas
+            
+                # Highlight failure risk areas if available
                 if 'failure_risk' in df.columns:
                     failure_mask = df['failure_risk'] == 1
                     if failure_mask.any():
                         axes[i].fill_between(df.index, df[sensor].min(), df[sensor].max(), 
-                                           where=failure_mask, alpha=0.3, color='red', 
-                                           label='Failure Risk')
-        
+                                       where=failure_mask, alpha=0.3, color='red', 
+                                       label='Failure Risk')
+    
         plt.xlabel('Time Index')
         plt.title('Aircraft Sensor Data Over Time')
         plt.tight_layout()
-        plt.show()
     
-    def plot_failure_risk_distribution(self, df):
-        """Plot distribution of failure risk"""
+        # Save the plot if save_path is provided
+        if save_path:
+            try:
+                # Create directory if it doesn't exist
+                import os
+                os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                plt.savefig(save_path, dpi=300, bbox_inches='tight')
+                print(f"✅ Sensor plot saved to: {save_path}")
+            except Exception as e:
+                print(f"Warning: Could not save plot to {save_path}: {e}")
+    
+        plt.show()
+
+    def plot_failure_analysis(self, df, save_path=None):
+        """Plot failure analysis"""
         if 'failure_risk' in df.columns:
-            plt.figure(figsize=(10, 6))
-            
+            plt.figure(figsize=(12, 8))
+        
             # Risk distribution pie chart
-            plt.subplot(1, 2, 1)
+            plt.subplot(2, 2, 1)
             risk_counts = df['failure_risk'].value_counts()
             labels = ['Normal', 'Failure Risk']
             plt.pie(risk_counts.values, labels=labels, autopct='%1.1f%%', 
                    colors=['green', 'red'], startangle=90)
             plt.title('Failure Risk Distribution')
-            
+        
             # Risk over time
-            plt.subplot(1, 2, 2)
+            plt.subplot(2, 2, 2)
             df['failure_risk'].rolling(window=100).mean().plot(color='red', linewidth=2)
             plt.title('Failure Risk Trend (Rolling Average)')
             plt.ylabel('Failure Risk Probability')
             plt.xlabel('Time Index')
             plt.grid(True, alpha=0.3)
-            
+        
             plt.tight_layout()
+        
+            # Save if requested
+            if save_path:
+                try:
+                    import os
+                    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+                    print(f"✅ Failure analysis plot saved to: {save_path}")
+                except Exception as e:
+                    print(f"Warning: Could not save plot to {save_path}: {e}")
+        
             plt.show()
-    
+
     def plot_model_performance_comparison(self, model_performance):
         """Compare performance of different models"""
         classifiers = {}
@@ -200,6 +223,36 @@ class MaintenanceVisualizer:
         plt.legend(loc="lower right")
         plt.grid(True, alpha=0.3)
         plt.show()
+
+    def plot_rul_distribution(self, df, save_path=None):
+        """Plot RUL distribution"""
+        if 'remaining_useful_life' in df.columns:
+            plt.figure(figsize=(12, 6))
+            plt.subplot(1, 2, 1)
+            plt.hist(df['remaining_useful_life'], bins=30, alpha=0.7, color='blue')
+            plt.xlabel('Remaining Useful Life (cycles)')
+            plt.ylabel('Frequency')
+            plt.title('RUL Distribution')
+            plt.grid(True, alpha=0.3)
+            plt.subplot(1, 2, 2)
+            df['remaining_useful_life'].plot(color='purple', linewidth=1)
+            plt.xlabel('Time Index')
+            plt.ylabel('RUL (cycles)')
+            plt.title('RUL Over Time')
+            plt.grid(True, alpha=0.3)
+            plt.tight_layout()
+        
+            # Save if requested
+            if save_path:
+                try:
+                    import os
+                    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+                    print(f"✅ RUL distribution plot saved to: {save_path}")
+                except Exception as e:
+                    print(f"Warning: Could not save plot to {save_path}: {e}")
+        
+            plt.show()
     
     def plot_prediction_vs_actual(self, y_true, y_pred, model_name):
         """Plot prediction vs actual for regression models"""

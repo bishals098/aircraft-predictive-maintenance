@@ -79,9 +79,9 @@ st.markdown("""
 
 @st.cache_resource
 def load_predictor():
-    """Load the predictive maintenance system with PyTorch support"""
+    """Load the predictive maintenance system"""
     try:
-        # Use the correct config path for multi-dataset system with PyTorch models
+        # Use the correct config path for multi-dataset system
         return PredictiveMaintenance(config_path='config/config.yaml')
     except Exception as e:
         st.error(f"Error loading predictive models: {e}")
@@ -324,7 +324,7 @@ def create_sensor_visualization(sensor_data):
                 range=[0, 1]
             )),
         showlegend=True,
-        title="NASA Turbofan Engine Sensor Readings (PyTorch Analysis)",
+        title="NASA Turbofan Engine Sensor Reading Analysis",
         height=500
     )
     
@@ -333,10 +333,10 @@ def create_sensor_visualization(sensor_data):
 def display_historical_data(sample_data):
     """Display historical sensor data and trends"""
     if sample_data is None:
-        st.warning("No historical data available. Please run the PyTorch training script first.")
+        st.warning("No historical data available. Please run the training script first.")
         return
     
-    st.subheader("📊 Historical NASA Data Trends")
+    st.subheader("📊 Historical NASA Flight-Data Trends")
     
     # Select sensors to display
     available_sensors = ['temperature', 'pressure', 'vibration', 'rpm']
@@ -386,7 +386,7 @@ def display_historical_data(sample_data):
     
     fig.update_layout(
         height=200 * len(display_sensors),
-        title_text="Historical Sensor Data Analysis (PyTorch Processed)",
+        title_text="Historical Sensor Data Analysis (Processed)",
         showlegend=True
     )
     
@@ -442,7 +442,7 @@ def create_maintenance_recommendations(failure_result, rul_result):
         st.markdown(f"{i}. {rec}")
     
     # Additional technical details
-    with st.expander("🔍 PyTorch Model Technical Details"):
+    with st.expander("🔍 Trained Model Technical Details"):
         st.markdown(f"**Model Prediction Details:**")
         st.markdown(f"- Failure Probability: {failure_result.get('failure_probability', 0):.4f}")
         st.markdown(f"- Remaining Cycles: {rul_cycles:.0f}")
@@ -460,12 +460,12 @@ def main():
     
     # Header
     st.markdown('<h1 class="main-header">🚀 NASA Aircraft Predictive Maintenance System</h1>', unsafe_allow_html=True)
-    st.markdown("### Real-time Turbofan Engine Health Monitoring using NASA C-MAPSS Dataset with PyTorch")
+    st.markdown("### Real-time Turbofan Engine Health Monitoring using NASA C-MAPSS Dataset")
     
     # Load predictor
     predictor = load_predictor()
     if predictor is None:
-        st.error("Unable to load PyTorch predictive models. Please check your installation and run the training script.")
+        st.error("Unable to load predictive models. Please check your installation and run the training script.")
         return
     
     # Load sample data
@@ -475,8 +475,8 @@ def main():
     sensor_data, dataset_choice = create_sensor_input_form()
     
     # Prediction button
-    if st.sidebar.button("🔮 Predict Engine Health (PyTorch)", type="primary"):
-        with st.spinner("Analyzing engine sensor data with PyTorch models..."):
+    if st.sidebar.button("🔮 Predict Engine Health", type="primary"):
+        with st.spinner("Analyzing engine sensor data with trained models..."):
             try:
                 # Make predictions using PyTorch-enabled predictor
                 failure_result = predictor.predict_failure_risk(sensor_data)
@@ -490,7 +490,7 @@ def main():
                 
             except Exception as e:
                 st.error(f"Prediction failed: {str(e)}")
-                st.info("Please check that all sensor values are within expected ranges and PyTorch models are properly loaded.")
+                st.info("Please check that all sensor values are within expected ranges and models are properly loaded.")
     
     # Main content area
     tab1, tab2, tab3, tab4 = st.tabs(["🎛️ Sensor Monitor", "📊 Historical Data", "🔬 Analysis", "ℹ️ System Info"])
@@ -529,7 +529,7 @@ def main():
         display_historical_data(sample_data)
     
     with tab3:
-        st.subheader("🔬 PyTorch Model Performance Analysis")
+        st.subheader("🔬 Machine Learning Model Performance Analysis")
         
         # Display dataset information
         dataset_info = {
@@ -539,7 +539,7 @@ def main():
             "FD004": {"complexity": "Complex", "faults": 2, "conditions": 6, "accuracy": "87.8%"}
         }
         
-        st.markdown("**NASA C-MAPSS Dataset Performance (PyTorch LSTM + Ensemble):**")
+        st.markdown("**NASA C-MAPSS Dataset Performance (LSTM + Ensemble):**")
         
         for dataset, info in dataset_info.items():
             with st.expander(f"{dataset} - {info['complexity']} Scenario"):
@@ -557,26 +557,26 @@ def main():
         st.subheader("ℹ️ System Information")
         
         st.markdown("""
-        **NASA C-MAPSS Aircraft Predictive Maintenance System (PyTorch Edition)**
+        **NASA C-MAPSS Aircraft Predictive Maintenance System**
         
-        This system uses PyTorch-powered deep learning models combined with scikit-learn ensemble methods,
+        This system uses deep learning models combined with scikit-learn ensemble methods,
         trained on NASA's Commercial Modular Aero-Propulsion System Simulation (C-MAPSS) dataset to predict 
         turbofan engine failures and estimate remaining useful life (RUL).
         
         **Key Features:**
-        - 🎯 **PyTorch LSTM**: Deep learning for temporal pattern recognition
+        - 🎯 **LSTM**: Deep learning for temporal pattern recognition
         - 🔄 **Hybrid Ensemble**: PyTorch + Scikit-learn model combination
         - 📊 **Multi-Dataset Support**: Trained on FD001-FD004 with varying complexity scenarios
         - 🛡️ **Safety-Critical**: Designed for aviation maintenance applications
         - ⚡ **GPU Acceleration**: Automatic CUDA/CPU detection for optimal performance
         
         **Model Architecture:**
-        - **Deep Learning**: PyTorch LSTM for sequential sensor data analysis
+        - **Deep Learning**: LSTM for sequential sensor data analysis
         - **Classical ML**: Random Forest, XGBoost, SVM, KNN for robust predictions
         - **Advanced Features**: 100+ engineered features from 21 sensor parameters
         - **Ensemble Strategy**: Weighted voting across all model types
         
-        **PyTorch Performance:**
+        **Machine Learning Performance:**
         - Single-fault scenarios: Up to 91.6% accuracy
         - Multi-fault scenarios: Up to 89.4% accuracy
         - Cross-dataset ensemble: Robust performance across all conditions
@@ -586,7 +586,7 @@ def main():
         # System status
         st.subheader("🔧 System Status")
         if predictor:
-            st.success("✅ PyTorch predictive models loaded successfully")
+            st.success("✅ ML predictive models loaded successfully")
             st.success("✅ Multi-dataset support enabled")
             st.success("✅ Real-time predictions available")
             st.success("✅ GPU acceleration ready (if available)")
