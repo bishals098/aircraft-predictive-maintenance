@@ -1,5 +1,5 @@
 # NASA C-MAPSS Multi-Dataset Predictive Maintenance Analysis Report
-Generated: 2025-09-27 00:59:46
+Generated: 2025-12-24 16:35:56
 
 ## Dataset Overview
 
@@ -36,7 +36,7 @@ Generated: 2025-09-27 00:59:46
 | FD001     |             1 |                      1 |                   0.9164   |            0.774731 |                  1 |
 | FD003     |             2 |                      1 |                   0.893687 |            0.536309 |                  2 |
 | FD002     |             1 |                      6 |                   0.903104 |            0.722459 |                  6 |
-| FD004     |             2 |                      6 |                   0.878428 |            0.610971 |                 12 |
+| FD004     |             2 |                      6 |                   0.878428 |            0.61097  |                 12 |
 
 ## Key Insights
 

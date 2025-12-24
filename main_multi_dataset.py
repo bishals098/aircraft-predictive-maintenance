@@ -122,7 +122,6 @@ def display_dataset_statistics(all_datasets):
         print(f"  🎯 Fault modes: {info.get('fault_modes', 'Unknown')}")
         print(f"  🌡️ Operating conditions: {info.get('operating_conditions', 'Unknown')}")
 
-
 def train_multi_dataset_models(all_datasets):
     """Train models on all datasets"""
     print("\n🤖 Training models on all NASA datasets...")
@@ -135,7 +134,6 @@ def train_multi_dataset_models(all_datasets):
 def test_predictions(all_datasets):
     """Test prediction system with sample scenarios"""
     print("\n🔮 Multi-Dataset Prediction Demonstration...")
-    
     predictor = PredictiveMaintenance()
     
     # Test scenarios for different dataset complexities
