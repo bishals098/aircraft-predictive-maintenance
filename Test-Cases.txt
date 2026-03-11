@@ -1,0 +1,23 @@
+Testing Scenario 01: Default
+
+Testing Scenario 02:
+
+Temperature: 545.0
+Pressure: 13.8  
+HPC Outlet: 2395.0
+Fan Speed: 2395.0
+Corrected Speed: 1.25
+Fuel Flow: 570.0
+Altitude: 0.2
+Bypass: 0.88
+
+Testing Scenario 03:
+
+Temperature: 590.0
+Pressure: 13.0
+HPC Outlet: 2399.0  
+Fan Speed: 2399.0
+Corrected Speed: 1.15
+Fuel Flow: 590.0
+Altitude: 0.6
+Bypass: 0.95

@@ -31,9 +31,9 @@ class DataPreprocessor:
         df = df.replace([np.inf, -np.inf], np.nan)
         
         # Forward fill for time series data
-        df = df.fillna(method='ffill')
+        df = df.ffill()
         # Backward fill for any remaining NaN
-        df = df.fillna(method='bfill')
+        df = df.bfill()
         # Final fallback: fill remaining NaN with 0
         df = df.fillna(0)
         

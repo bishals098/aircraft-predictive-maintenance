@@ -168,12 +168,18 @@ class ModelTrainer:
         """Train XGBoost classifier"""
         print("Training XGBoost Classifier...")
         xgb_config = self.config['models']['xgboost']
+
+        # Auto-detect GPU for XGBoost
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        tree_method = 'hist'  # Works for both CPU and GPU
         
         model = xgb.XGBClassifier(
             n_estimators=xgb_config['n_estimators'],
             max_depth=xgb_config['max_depth'],
             learning_rate=xgb_config['learning_rate'],
-            random_state=42
+            random_state=42,
+            tree_method=tree_method,
+            device=device
         )
         
         model.fit(X_train, y_train)
@@ -265,7 +271,7 @@ class ModelTrainer:
         return model
     
     def train_lstm_classifier(self, X_train_seq, y_train_seq, X_test_seq, y_test_seq):
-        """Train PyTorch LSTM classifier with TensorFlow-style progress bars"""
+        """Train PyTorch LSTM classifier"""
         print("Training LSTM Classifier...")
     
         # Add this import at the top of the file

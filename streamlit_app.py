@@ -390,7 +390,7 @@ def display_historical_data(sample_data):
         showlegend=True
     )
     
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
     
     # Display summary statistics
     if len(display_sensors) > 0:
@@ -500,7 +500,7 @@ def main():
         
         # Display sensor visualization
         radar_fig = create_sensor_visualization(sensor_data)
-        st.plotly_chart(radar_fig, use_container_width=True)
+        st.plotly_chart(radar_fig, width='content')
         
         # Display current sensor values in a nice format
         st.subheader("📋 Current Values")

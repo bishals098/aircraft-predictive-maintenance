@@ -1,5 +1,5 @@
 # NASA C-MAPSS Multi-Dataset Predictive Maintenance Analysis Report
-Generated: 2025-12-24 16:35:56
+Generated: 2026-03-12 02:13:40
 
 ## Dataset Overview
 
@@ -33,10 +33,10 @@ Generated: 2025-12-24 16:35:56
 
 | Dataset   |   Fault_Modes |   Operating_Conditions |   Best_Classifier_Accuracy |   Best_Regressor_R2 |   Complexity_Score |
 |:----------|--------------:|-----------------------:|---------------------------:|--------------------:|-------------------:|
-| FD001     |             1 |                      1 |                   0.9164   |            0.774731 |                  1 |
-| FD003     |             2 |                      1 |                   0.893687 |            0.536309 |                  2 |
-| FD002     |             1 |                      6 |                   0.903104 |            0.722459 |                  6 |
-| FD004     |             2 |                      6 |                   0.878428 |            0.61097  |                 12 |
+| FD001     |             1 |                      1 |                   0.917162 |            0.774657 |                  1 |
+| FD003     |             2 |                      1 |                   0.892396 |            0.536372 |                  2 |
+| FD002     |             1 |                      6 |                   0.902394 |            0.722441 |                  6 |
+| FD004     |             2 |                      6 |                   0.876365 |            0.611016 |                 12 |
 
 ## Key Insights
 
@@ -47,16 +47,16 @@ Generated: 2025-12-24 16:35:56
 -    FD002: 🔴 Complex (1 fault(s), 6 condition(s))
 -    FD004: 🔴 Complex (2 fault(s), 6 condition(s))
 - 
-🏆 Best performing dataset: FD001 (0.9164 accuracy)
-- ⚠️ Most challenging dataset: FD004 (0.8784 accuracy)
+🏆 Best performing dataset: FD001 (0.9172 accuracy)
+- ⚠️ Most challenging dataset: FD004 (0.8764 accuracy)
 - 
 🔧 Single-fault datasets average accuracy: 0.9098
-- 🔧 Multi-fault datasets average accuracy: 0.8861
-- 📉 Performance drop due to multiple faults: 0.0237
+- 🔧 Multi-fault datasets average accuracy: 0.8844
+- 📉 Performance drop due to multiple faults: 0.0254
 - 
-🌡️ Single operating condition average accuracy: 0.9050
-- 🌡️ Multiple operating conditions average accuracy: 0.8908
-- 📉 Performance drop due to varying conditions: 0.0143
+🌡️ Single operating condition average accuracy: 0.9048
+- 🌡️ Multiple operating conditions average accuracy: 0.8894
+- 📉 Performance drop due to varying conditions: 0.0154
 
 ## Recommendations
 
